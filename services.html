@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:x-transition="http://www.w3.org/1999/xhtml">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Services - FlexSched</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Custom toggle switch */
+        .toggle-checkbox:checked {
+            right: 0;
+            border-color: #2563eb;
+        }
+        .toggle-checkbox:checked + .toggle-label {
+            background-color: #2563eb;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <header class="bg-white shadow">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
+            <h1 class="text-2xl font-bold text-blue-600">FlexSched</h1>
+            <nav>
+                <ul class="flex space-x-6">
+                    <li><a href="index.html" class="text-gray-600 hover:text-blue-600 transition">Home</a></li>
+                    <li><a href="dashboard.html" class="text-gray-600 hover:text-blue-600 transition">Dashboard</a></li>
+                    <li><a href="services.html" class="text-blue-600 font-medium">Services</a></li>
+                    <li><a href="#" class="text-gray-600 hover:text-blue-600 transition">Profile</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8" x-data="serviceSetup()">
+        <!-- Page Header with Actions -->
+        <div class="bg-white rounded-lg shadow mb-6">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <h2 class="text-xl font-semibold text-gray-800">Manage Services</h2>
+                    <div class="flex space-x-3">
+                        <button
+                            @click="openAddServiceModal()"
+                            class="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition"
+                            aria-label="Add New Service"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd" />
+                            </svg>
+                            Add New
+                        </button>
+                        <div class="relative">
+                            <button
+                                @click="showExport = !showExport"
+                                class="inline-flex items-center px-4 py-2 bg-gray-100 text-gray-700 text-sm font-medium rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition"
+                                aria-label="Export Options"
+                                aria-expanded="false"
+                                aria-haspopup="true"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" />
+                                </svg>
+                                Export
+                            </button>
+                            <!-- Export Dropdown -->
+                            <div
+                                x-show="showExport"
+                                @click.away="showExport = false"npm
+                                    x-transition:enter="transition ease-out duration-100"
+                                x-transition:enter-start="transform opacity-0 scale-95"
+                                x-transition:enter-end="transform opacity-100 scale-100"
+                                x-transition:leave="transition ease-in duration-75"
+                                x-transition:leave-start="transform opacity-100 scale-100"
+                                x-transition:leave-end="transform opacity-0 scale-95"
+                                class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-10"
+                                style="display: none;"
+                            >
+                                <div class="py-1">
+                                    <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Export as CSV</a>
+                                    <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Export as PDF</a>
+                                    <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Print Services</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Search and Filters -->
+            <div class="px-6 py-4 bg-gray-50 border-b border-gray-200">
+                <div class="flex flex-col sm:flex-row justify-between items-center gap-4">
+                    <div class="relative w-full sm:w-64">
+                        <input
+                            type="text"
+                            x-model="searchTerm"
+                            placeholder="Search services..."
+                            class="w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                            aria-label="Search services"
+                        >
+                        <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                            <svg class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd" />
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="flex space-x-4 w-full sm:w-auto">
+                        <select
+                            x-model="statusFilter"
+                            class="block pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
+                            aria-label="Filter by status"
+                        >
+                            <option value="all">All Status</option>
+                            <option value="active">Active Only</option>
+                            <option value="inactive">Inactive Only</option>
+                        </select>
+                        <select
+                            x-model="sortBy"
+                            class="block pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
+                            aria-label="Sort by"
+                        >
+                            <option value="name">Sort by Name</option>
+                            <option value="price">Sort by Price</option>
+                            <option value="duration">Sort by Duration</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Services Table -->
+        <div class="bg-white rounded-lg shadow overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Service
+                            </th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Duration
+                            </th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Price
+                            </th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Status
+                            </th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Actions
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        <template x-for="service in filteredServices" :key="service.id">
+                            <tr>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="text-sm font-medium text-gray-900" x-text="service.name"></div>
+                                    <div class="text-sm text-gray-500" x-show="service.description" x-text="service.description"></div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="text-sm text-gray-900" x-text="service.duration"></div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="text-sm text-gray-900" x-text="'$' + service.price"></div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="relative inline-block w-10 mr-2 align-middle select-none">
+                                        <input
+                                            type="checkbox"
+                                            :id="'toggle-' + service.id"
+                                            :checked="service.status === 'active'"
+                                            @change="toggleServiceStatus(service)"
+                                            class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer"
+                                            :aria-label="'Toggle ' + service.name + ' status'"
+                                        />
+                                        <label
+                                            :for="'toggle-' + service.id"
+                                            class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 cursor-pointer"
+                                        ></label>
+                                    </div>
+                                    <span
+                                        class="text-xs px-2 py-1 rounded-full"
+                                        :class="service.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'"
+                                        x-text="service.status"
+                                    ></span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                    <div class="flex space-x-3">
+                                        <button
+                                            @click="editService(service)"
+                                            class="text-blue-600 hover:text-blue-900 focus:outline-none focus:underline"
+                                            aria-label="Edit service"
+                                        >
+                                            Edit
+                                        </button>
+                                        <button
+                                            @click="deleteService(service)"
+                                            class="text-red-600 hover:text-red-900 focus:outline-none focus:underline"
+                                            aria-label="Delete service"
+                                        >
+                                            Delete
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        </template>
+                        <!-- Empty state -->
+                        <tr x-show="filteredServices.length === 0">
+                            <td colspan="5" class="px-6 py-10 text-center">
+                                <div class="text-gray-500">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 mx-auto mb-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    <p class="text-lg font-medium">No services found</p>
+                                    <p class="mt-1">Try adjusting your search or filter to find what you're looking for.</p>
+                                    <button
+                                        @click="resetFilters()"
+                                        class="mt-4 px-4 py-2 bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 transition"
+                                    >
+                                        Reset Filters
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            <div class="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
+                <div class="flex-1 flex justify-between sm:hidden">
+                    <button class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                        Previous
+                    </button>
+                    <button class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                        Next
+                    </button>
+                </div>
+                <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                    <div>
+                        <p class="text-sm text-gray-700">
+                            Showing <span class="font-medium">1</span> to <span class="font-medium" x-text="filteredServices.length"></span> of <span class="font-medium" x-text="filteredServices.length"></span> results
+                        </p>
+                    </div>
+                    <div>
+                        <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                            <a href="#" class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                                <span class="sr-only">Previous</span>
+                                <!-- Heroicon name: solid/chevron-left -->
+                                <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                    <path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" />
+                                </svg>
+                            </a>
+                            <a href="#" class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">
+                                1
+                            </a>
+                            <a href="#" class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                                <span class="sr-only">Next</span>
+                                <!-- Heroicon name: solid/chevron-right -->
+                                <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                    <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
+                                </svg>
+                            </a>
+                        </nav>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Service Modal -->
+        <div
+            x-show="showModal"
+            class="fixed inset-0 overflow-y-auto z-50"
+            role="dialog"
+            aria-modal="true"
+            x-transition:enter="transition ease-out duration-300"
+            x-transition:enter-start="opacity-0"
+            x-transition:enter-end="opacity-100"
+            x-transition:leave="transition ease-in duration-200"
+            x-transition:leave-start="opacity-100"
+            x-transition:leave-end="opacity-0"
+            style="display: none;"
+        >
+            <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+                <!-- Background overlay -->
+                <div
+                    x-show="showModal"
+                    @click="showModal = false"
+                    x-transition:enter="ease-out duration-300"
+                    x-transition:enter-start="opacity-0"
+                    x-transition:enter-end="opacity-100"
+                    x-transition:leave="ease-in duration-200"
+                    x-transition:leave-start="opacity-100"
+                    x-transition:leave-end="opacity-0"
+                    class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
+                    aria-hidden="true"
+                ></div>
+
+                <!-- Modal panel -->
+                <div
+                    x-show="showModal"
+                    x-transition:enter="ease-out duration-300"
+                    x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                    x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
+                    x-transition:leave="ease-in duration-200"
+                    x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
+                    x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                    class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full"
+                >
+                    <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                        <div class="sm:flex sm:items-start">
+                            <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
+                                <h3 class="text-lg leading-6 font-medium text-gray-900" x-text="editingService ? 'Edit Service' : 'Add New Service'"></h3>
+                                <div class="mt-4 space-y-4">
+                                    <div>
+                                        <label for="service-name" class="block text-sm font-medium text-gray-700">Service Name</label>
+                                        <input
+                                            type="text"
+                                            id="service-name"
+                                            x-model="currentService.name"
+                                            class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                                            placeholder="e.g. Haircut"
+                                        >
+                                    </div>
+                                    <div>
+                                        <label for="service-description" class="block text-sm font-medium text-gray-700">Description (optional)</label>
+                                        <textarea
+                                            id="service-description"
+                                            x-model="currentService.description"
+                                            rows="3"
+                                            class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                                            placeholder="Briefly describe this service"
+                                        ></textarea>
+                                    </div>
+                                    <div class="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label for="service-duration" class="block text-sm font-medium text-gray-700">Duration</label>
+                                            <div class="mt-1 relative rounded-md shadow-sm">
+                                                <input
+                                                    type="number"
+                                                    id="service-duration"
+                                                    x-model="currentService.durationValue"
+                                                    min="1"
+                                                    class="block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                                                    placeholder="30"
+                                                >
+                                                <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                                                    <span class="text-gray-500 sm:text-sm">mins</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label for="service-price" class="block text-sm font-medium text-gray-700">Price</label>
+                                            <div class="mt-1 relative rounded-md shadow-sm">
+                                                <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                                                    <span class="text-gray-500 sm:text-sm">$</span>
+                                                </div>
+                                                <input
+                                                    type="number"
+                                                    id="service-price"
+                                                    x-model="currentService.price"
+                                                    min="0"
+                                                    step="0.01"
+                                                    class="block w-full pl-7 p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                                                    placeholder="0.00"
+                                                >
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center">
+                                        <div class="relative inline-block w-10 mr-2 align-middle select-none">
+                                            <input
+                                                type="checkbox"
+                                                id="service-status"
+                                                x-model="currentService.status"
+                                                :true-value="'active'"
+                                                :false-value="'inactive'"
+                                                class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer"
+                                            />
+                                            <label
+                                                for="service-status"
+                                                class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 cursor-pointer"
+                                            ></label>
+                                        </div>
+                                        <label for="service-status" class="text-sm text-gray-700">
+                                            Service is <span x-text="currentService.status === 'active' ? 'active' : 'inactive'"></span>
+                                        </label>
+                                    </div>
+                                    <div x-show="error" class="text-red-600 text-sm mt-2" x-text="error"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                        <button
+                            type="button"
+                            @click="saveService"
+                            class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:ml-3 sm:w-auto sm:text-sm"
+                        >
+                            Save
+                        </button>
+                        <button
+                            type="button"
+                            @click="showModal = false"
+                            class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
+                        >
+                            Cancel
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Delete Confirmation Modal -->
+        <div
+            x-show="showDeleteModal"
+            class="fixed inset-0 overflow-y-auto z-50"
+            role="dialog"
+            aria-modal="true"
+            style="display: none;"
+        >
+            <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+                <!-- Background overlay -->
+                <div
+                    @click="showDeleteModal = false"
+                    class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
+                    aria-hidden="true"
+                ></div>
+
+                <script>function serviceSetup() {
+    return {
+        services: [
+            { id: 1, name: "Haircut", description: "Basic haircut service", duration: "30 mins", durationValue: 30, price: 30, status: "active" },
+            { id: 2, name: "Color", description: "Hair coloring service", duration: "90 mins", durationValue: 90, price: 120, status: "inactive" },
+            { id: 3, name: "Cut & Style", description: "Haircut with styling", duration: "60 min", durationValue: 60, price: 65, status: "active" },
+            { id: 4, name: "Beard Trim", description: "Beard trimming service", duration: "15 mins", durationValue: 15, price: 15, status: "active" },
+            { id: 5, name: "Deep Condition", description: "Deep conditioning treatment", duration: "45 mins", durationValue: 45, price: 60, status: "active" }
+        ],
+        searchTerm: "",
+        statusFilter: "all",
+        sortBy: "name",
+        showModal: false,
+        showDeleteModal: false,
+        showExport: false,
+        currentService: {
+            id: null,
+            name: "",
+            description: "",
+            duration: "",
+            durationValue: 30,
+            price: 0,
+            status: "active"
+        },
+        editingService: false,
+        error: "",
+
+        get filteredServices() {
+            return this.services
+                .filter(service => {
+                    // Apply search filter
+                    const matchesSearch = this.searchTerm === "" ||
+                        service.name.toLowerCase().includes(this.searchTerm.toLowerCase()) ||
+                        (service.description && service.description.toLowerCase().includes(this.searchTerm.toLowerCase()));
+
+                    // Apply status filter
+                    const matchesStatus = this.statusFilter === "all" ||
+                        service.status === this.statusFilter;
+
+                    return matchesSearch && matchesStatus;
+                })
+                .sort((a, b) => {
+                    // Apply sorting
+                    if (this.sortBy === "name") {
+                        return a.name.localeCompare(b.name);
+                    } else if (this.sortBy === "price") {
+                        return a.price - b.price;
+                    } else if (this.sortBy === "duration") {
+                        return a.durationValue - b.durationValue;
+                    }
+                    return 0;
+                });
+        },
+
+        resetFilters() {
+            this.searchTerm = "";
+            this.statusFilter = "all";
+            this.sortBy = "name";
+        },
+
+        openAddServiceModal() {
+            this.currentService = {
+                id: this.services.length > 0 ? Math.max(...this.services.map(s => s.id)) + 1 : 1,
+                name: "",
+                description: "",
+                duration: "30 mins",
+                durationValue: 30,
+                price: 0,
+                status: "active"
+            };
+            this.editingService = false;
+            this.error = "";
+            this.showModal = true;
+        },
+
+        editService(service) {
+            this.currentService = {
+                id: service.id,
+                name: service.name,
+                description: service.description || "",
+                duration: service.duration,
+                durationValue: service.durationValue,
+                price: service.price,
+                status: service.status
+            };
+            this.editingService = true;
+            this.error = "";
+            this.showModal = true;
+        },
+
+        saveService() {
+            // Validation
+            if (!this.currentService.name.trim()) {
+                this.error = "Service name is required";
+                return;
+            }
+
+            // Format duration
+            const mins = this.currentService.durationValue;
+            this.currentService.duration = mins === 1 ? "1 min" : `${mins} mins`;
+
+            if (this.editingService) {
+                // Update existing service
+                const index = this.services.findIndex(s => s.id === this.currentService.id);
+                if (index !== -1) {
+                    this.services[index] = {...this.currentService};
+                }
+            } else {
+                // Add new service
+                this.services.push({...this.currentService});
+            }
+
+            this.showModal = false;
+        },
+
+        deleteService(service) {
+            this.currentService = service;
+            this.showDeleteModal = true;
+        },
+
+        confirmDeleteService() {
+            this.services = this.services.filter(s => s.id !== this.currentService.id);
+            this.showDeleteModal = false;
+        },
+
+        toggleServiceStatus(service) {
+            const index = this.services.findIndex(s => s.id === service.id);
+            if (index !== -1) {
+                this.services[index].status = this.services[index].status === 'active' ? 'inactive' : 'active';
+            }
+        }
+    };
+}</script>
+
+                <!-- Modal panel -->
+                <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+                    <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                        <div class="sm:flex sm:items-start">
+                            <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100 sm:mx-0 sm:h-10 sm:w-10">
+                                <svg class="h-6 w-6 text-red-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                </svg>
+                            </div>
+                            <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
+                                <h3 class="text-lg leading-6 font-medium text-gray-900">Delete Service</h3>
+                                <div class="mt-2">
+                                    <p class="text-sm text-gray-500">
+                                        Are you sure you want to delete <span class="font-medium" x-text="currentService.name"></span>?
+                                        This action cannot be undone.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                        <button
+                            type="button"
+                            @click="confirmDeleteService"
+                            class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:ml-3 sm
