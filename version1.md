@@ -44,6 +44,17 @@ I found that **specific, targeted prompts** generated much better results. Here 
 | Unclear what Tailwind utility classes were doing| Used Tailwind docs and asked AI for plain-English explanations for each class |
 
 ## 4. Screenshots of Completed Front End
+### Landing Page
+![Landing Page](screenshots/landing-page.png)
+
+### Client Booking Page
+![Booking Page](screenshots/booking.png)
+
+### Dashboard
+![Dashboard](screenshots/dashboard.png)
+
+### Business Services Page
+![Services Page](screenshots/services.png)
 
 
 ## 5. What I Learned About Prompt Engineering
