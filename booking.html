@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Book an Appointment - FlexSched</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <header class="bg-white shadow">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
+            <h1 class="text-2xl font-bold text-blue-600">FlexSched</h1>
+            <nav>
+                <ul class="flex space-x-6">
+                    <li><a href="index.html" class="text-gray-600 hover:text-blue-600">Home</a></li>
+                    <li><a href="#" class="text-gray-600 hover:text-blue-600">Services</a></li>
+                    <li><a href="#" class="text-gray-600 hover:text-blue-600">About</a></li>
+                    <li><a href="#" class="text-gray-600 hover:text-blue-600">Contact</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <main class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8" x-data="bookingPage()">
+        <!-- Business Info Banner -->
+        <div class="bg-blue-50 rounded-lg shadow mb-8 p-6 text-center">
+            <h2 class="text-2xl font-bold text-blue-800 mb-2" x-text="businessName"></h2>
+            <p class="text-gray-700" x-text="businessAddress"></p>
+        </div>
+
+        <!-- Booking Form -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <h3 class="text-xl font-semibold mb-6">Book an Appointment</h3>
+
+            <form @submit.prevent="submitBooking" class="space-y-6">
+                <!-- Service Selection -->
+                <div>
+                    <label for="service" class="block text-sm font-medium text-gray-700 mb-2">Select Service:</label>
+                    <div class="relative">
+                        <select
+                            id="service"
+                            x-model="selectedService"
+                            class="block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 px-4 py-3 bg-white border"
+                        >
+                            <template x-for="service in services" :key="service.id">
+                                <option :value="service.id" x-text="`${service.name} - $${service.price} (${service.duration} mins)`"></option>
+                            </template>
+                        </select>
+                        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
+                            <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Date Selection -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Select Date:</label>
+
+                    <!-- Days of the week -->
+                    <div class="grid grid-cols-7 mb-2">
+                        <template x-for="day in daysOfWeek" :key="day">
+                            <div class="text-center font-medium py-2" x-text="day"></div>
+                        </template>
+                    </div>
+
+                    <!-- Calendar dates -->
+                    <div class="grid grid-cols-7 gap-1 mb-4">
+                        <template x-for="date in availableDates" :key="date.day">
+                            <button
+                                type="button"
+                                class="text-center py-2 rounded-md focus:outline-none"
+                                :class="isSelectedDate(date.day) ?
+                                    'bg-blue-500 text-white' :
+                                    date.available ? 'hover:bg-blue-100' : 'text-gray-400'"
+                                @click="selectDate(date)"
+                                :disabled="!date.available"
+                            >
+                                <span x-text="date.day"></span>
+                            </button>
+                        </template>
+                    </div>
+                </div>
+
+                <!-- Time Selection -->
+                <div x-show="selectedDate">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Select Time:</label>
+
+                    <div class="grid grid-cols-2 md:grid-cols-5 gap-2">
+                        <template x-for="timeSlot in availableTimeSlots" :key="timeSlot.time">
+                            <button
+                                type="button"
+                                class="text-center py-2 px-3 rounded-md focus:outline-none"
+                                :class="timeSlot.time === selectedTime ?
+                                    'bg-blue-500 text-white' :
+                                    timeSlot.available ?
+                                        'bg-blue-100 text-blue-700 hover:bg-blue-200' :
+                                        'bg-gray-200 text-gray-500'"
+                                @click="selectTime(timeSlot.time)"
+                                :disabled="!timeSlot.available"
+                            >
+                                <span x-text="timeSlot.time"></span>
+                            </button>
+                        </template>
+                    </div>
+                </div>
+
+                <!-- Client Information -->
+                <div x-show="selectedTime" class="space-y-4">
+                    <h4 class="font-medium text-gray-900">Your Information</h4>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label for="firstName" class="block text-sm font-medium text-gray-700 mb-1">First Name</label>
+                            <input
+                                type="text"
+                                id="firstName"
+                                x-model="customerInfo.firstName"
+                                class="block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 px-4 py-2 border"
+                                required
+                            >
+                        </div>
+
+                        <div>
+                            <label for="lastName" class="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
+                            <input
+                                type="text"
+                                id="lastName"
+                                x-model="customerInfo.lastName"
+                                class="block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 px-4 py-2 border"
+                                required
+                            >
+                        </div>
+
+                        <div>
+                            <label for="email" class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                            <input
+                                type="email"
+                                id="email"
+                                x-model="customerInfo.email"
+                                class="block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 px-4 py-2 border"
+                                required
+                            >
+                        </div>
+
+                        <div>
+                            <label for="phone" class="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+                            <input
+                                type="tel"
+                                id="phone"
+                                x-model="customerInfo.phone"
+                                class="block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 px-4 py-2 border"
+                                required
+                            >
+                        </div>
+                    </div>
+
+                    <div>
+                        <label for="notes" class="block text-sm font-medium text-gray-700 mb-1">Notes (optional)</label>
+                        <textarea
+                            id="notes"
+                            x-model="customerInfo.notes"
+                            rows="3"
+                            class="block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 px-4 py-2 border"
+                        ></textarea>
+                    </div>
+                </div>
+
+                <!-- Booking Summary -->
+                <div x-show="selectedTime" class="bg-gray-50 p-4 rounded-md">
+                    <h4 class="font-medium text-gray-900 mb-2">Booking Summary</h4>
+                    <dl class="divide-y divide-gray-200">
+                        <div class="py-2 flex justify-between">
+                            <dt class="text-gray-600">Service:</dt>
+                            <dd class="text-gray-900" x-text="getServiceName(selectedService)"></dd>
+                        </div>
+                        <div class="py-2 flex justify-between">
+                            <dt class="text-gray-600">Date:</dt>
+                            <dd class="text-gray-900" x-text="formatSelectedDate()"></dd>
+                        </div>
+                        <div class="py-2 flex justify-between">
+                            <dt class="text-gray-600">Time:</dt>
+                            <dd class="text-gray-900" x-text="selectedTime"></dd>
+                        </div>
+                        <div class="py-2 flex justify-between">
+                            <dt class="text-gray-600">Price:</dt>
+                            <dd class="text-gray-900" x-text="getServicePrice(selectedService)"></dd>
+                        </div>
+                    </dl>
+                </div>
+
+                <!-- Submit Button -->
+                <div x-show="selectedTime">
+                    <button
+                        type="submit"
+                        class="w-full bg-blue-600 text-white font-medium py-3 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                    >
+                        Book Appointment
+                    </button>
+                </div>
+            </form>
+        </div>
+    </main>
+
+    <footer class="bg-gray-800 text-white mt-12">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <div class="flex flex-col md:flex-row justify-between">
+                <div class="mb-6 md:mb-0">
+                    <h2 class="text-xl font-bold mb-4">FlexSched</h2>
+                    <p class="text-gray-300">Simplifying appointment scheduling for small businesses.</p>
+                </div>
+                <div>
+                    <h3 class="text-lg font-semibold mb-4">Quick Links</h3>
+                    <ul class="space-y-2">
+                        <li><a href="#" class="text-blue-300 hover:text-white">Home</a></li>
+                        <li><a href="#" class="text-blue-300 hover:text-white">Features</a></li>
+                        <li><a href="#" class="text-blue-300 hover:text-white">Pricing</a></li>
+                        <li><a href="#" class="text-blue-300 hover:text-white">Contact</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="mt-8 pt-8 border-t border-gray-700 text-sm text-gray-400">
+                <p>&copy; 2025 FlexSched. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        function bookingPage() {
+            return {
+                businessName: "Carly's Hair Salon",
+                businessAddress: "333 Centre St, Roxbury, MA 02119",
+                services: [
+                    { id: 1, name: "Haircut", price: 30, duration: "30 mins", status: "active" },
+                    { id: 2, name: "Color", price: 120, duration: "90 mins", status: "inactive" },
+                    { id: 3, name: "Cut & Style", price: 65, duration: "60 mins", status: "active" },
+                    { id: 4, name: "Beard Trim", price: 15, duration: "15 mins", status: "active" },
+                    { id: 5, name: "Deep Condition", price: 60, duration: "45 mins", status: "active" }
+                ],
+                daysOfWeek: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+                availableDates: [
+                    { day: 1, available: true },
+                    { day: 2, available: true },
+                    { day: 3, available: true },
+                    { day: 4, available: true },
+                    { day: 5, available: true },
+                    { day: 6, available: true, current: true },
+                    { day: 7, available: true }
+                ],
+                availableTimeSlots: [
+                    { time: "9:00 AM", available: true },
+                    { time: "10:00 AM", available: true },
+                    { time: "10:30 AM", available: true },
+                    { time: "11:00 AM", available: true },
+                    { time: "11:30 AM", available: false }
+                ],
+                selectedService: 1,
+                selectedDate: null,
+                selectedTime: null,
+                customerInfo: {
+                    firstName: "",
+                    lastName: "",
+                    email: "",
+                    phone: "",
+                    notes: ""
+                },
+
+                selectDate(date) {
+                    if (date.available) {
+                        this.selectedDate = date.day;
+                        this.selectedTime = null; // Reset time when date changes
+                    }
+                },
+
+                selectTime(time) {
+                    this.selectedTime = time;
+                },
+
+                isSelectedDate(day) {
+                    return this.selectedDate === day;
+                },
+
+                getServiceName(serviceId) {
+                    const service = this.services.find(s => s.id === serviceId);
+                    return service ? service.name : '';
+                },
+
+                getServicePrice(serviceId) {
+                    const service = this.services.find(s => s.id === serviceId);
+                    return service ? `$${service.price}` : '';
+                },
+
+                formatSelectedDate() {
+                    // This is a simplified version - in a real app, you'd format a real date
+                    if (!this.selectedDate) return '';
+
+                    const day = this.selectedDate;
+                    const dayName = this.daysOfWeek[(day - 1) % 7];
+                    return `${dayName}, April ${day}`;
+                },
+
+                submitBooking() {
+                    // In a real application, this would send the booking data to a server
+                    alert(
+                        `Booking submitted!\n\n` +
+                        `Service: ${this.getServiceName(this.selectedService)}\n` +
+                        `Date: ${this.formatSelectedDate()}\n` +
+                        `Time: ${this.selectedTime}\n` +
+                        `Name: ${this.customerInfo.firstName} ${this.customerInfo.lastName}`
+                    );
+
+                    // Reset form
+                    this.selectedDate = null;
+                    this.selectedTime = null;
+                    this.customerInfo = {
+                        firstName: "",
+                        lastName: "",
+                        email: "",
+                        phone: "",
+                        notes: ""
+                    };
+                }
+            }
+        }
+        // frontend/js/api.js
+const API_BASE_URL = 'http://localhost:8000'; // Replace with your backend URL when deployed
+
+// Fetch businesses
+async function getBusinesses() {
+  try {
+    const response = await fetch(`${API_BASE_URL}/businesses`);
+    if (!response.ok) throw new Error('Failed to fetch businesses');
+    return await response.json();
+  } catch (error) {
+    console.error('Error fetching businesses:', error);
+    throw error;
+  }
+}
+
+// Fetch a specific business
+async function getBusiness(id) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/businesses/${id}`);
+    if (!response.ok) throw new Error('Failed to fetch business');
+    return await response.json();
+  } catch (error) {
+    console.error(`Error fetching business ${id}:`, error);
+    throw error;
+  }
+}
+
+// Fetch services for a business
+async function getServices(businessId) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/businesses/${businessId}/services`);
+    if (!response.ok) throw new Error('Failed to fetch services');
+    return await response.json();
+  } catch (error) {
+    console.error(`Error fetching services for business ${businessId}:`, error);
+    throw error;
+  }
+}
+
+// Fetch available slots for a service on a specific date
+async function getAvailableSlots(serviceId, date) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/services/${serviceId}/slots?date=${date}`);
+    if (!response.ok) throw new Error('Failed to fetch available slots');
+    return await response.json();
+  } catch (error) {
+    console.error(`Error fetching slots for service ${serviceId}:`, error);
+    throw error;
+  }
+}
+
+// Create a new appointment
+async function createAppointment(appointmentData) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/appointments`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(appointmentData),
+    });
+    if (!response.ok) throw new Error('Failed to create appointment');
+    return await response.json();
+  } catch (error) {
+    console.error('Error creating appointment:', error);
+    throw error;
+  }
+}
+    </script>
+</body>
+</html>

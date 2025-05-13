@@ -590,3 +590,203 @@
                             type="button"
                             @click="confirmDeleteService"
                             class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:ml-3 sm
+
+           function serviceSetup() {
+    return {
+        services: [],
+        searchTerm: "",
+        statusFilter: "all",
+        sortBy: "name",
+        showModal: false,
+        showDeleteModal: false,
+        showExport: false,
+        currentService: {
+            id: null,
+            name: "",
+            description: "",
+            duration: "",
+            durationValue: 30,
+            price: 0,
+            status: "active"
+        },
+        editingService: false,
+        error: "",
+
+        // New method to fetch services from the API
+        async fetchServices() {
+            try {
+                const response = await fetch('/api/services'); // Replace with your API URL
+                if (response.ok) {
+                    const data = await response.json();
+                    this.services = data; // Populate the services array with the fetched data
+                } else {
+                    this.error = "Failed to load services.";
+                }
+            } catch (error) {
+                console.error('Error fetching services:', error);
+                this.error = "Error fetching services.";
+            }
+        },
+
+        get filteredServices() {
+            return this.services
+                .filter(service => {
+                    // Apply search filter
+                    const matchesSearch = this.searchTerm === "" ||
+                        service.name.toLowerCase().includes(this.searchTerm.toLowerCase()) ||
+                        (service.description && service.description.toLowerCase().includes(this.searchTerm.toLowerCase()));
+
+                    // Apply status filter
+                    const matchesStatus = this.statusFilter === "all" ||
+                        service.status === this.statusFilter;
+
+                    return matchesSearch && matchesStatus;
+                })
+                .sort((a, b) => {
+                    // Apply sorting
+                    if (this.sortBy === "name") {
+                        return a.name.localeCompare(b.name);
+                    } else if (this.sortBy === "price") {
+                        return a.price - b.price;
+                    } else if (this.sortBy === "duration") {
+                        return a.durationValue - b.durationValue;
+                    }
+                    return 0;
+                });
+        },
+
+        resetFilters() {
+            this.searchTerm = "";
+            this.statusFilter = "all";
+            this.sortBy = "name";
+        },
+
+        openAddServiceModal() {
+            this.currentService = {
+                id: this.services.length > 0 ? Math.max(...this.services.map(s => s.id)) + 1 : 1,
+                name: "",
+                description: "",
+                duration: "30 mins",
+                durationValue: 30,
+                price: 0,
+                status: "active"
+            };
+            this.editingService = false;
+            this.error = "";
+            this.showModal = true;
+        },
+
+        editService(service) {
+            this.currentService = {
+                id: service.id,
+                name: service.name,
+                description: service.description || "",
+                duration: service.duration,
+                durationValue: service.durationValue,
+                price: service.price,
+                status: service.status
+            };
+            this.editingService = true;
+            this.error = "";
+            this.showModal = true;
+        },
+
+        async saveService() {
+            // Validation
+            if (!this.currentService.name.trim()) {
+                this.error = "Service name is required";
+                return;
+            }
+
+            // Format duration
+            const mins = this.currentService.durationValue;
+            this.currentService.duration = mins === 1 ? "1 min" : `${mins} mins`;
+
+            if (this.editingService) {
+                // Update existing service
+                const index = this.services.findIndex(s => s.id === this.currentService.id);
+                if (index !== -1) {
+                    this.services[index] = {...this.currentService};
+                    await this.updateServiceInAPI(this.currentService); // Update service on the API
+                }
+            } else {
+                // Add new service
+                this.services.push({...this.currentService});
+                await this.createServiceInAPI(this.currentService); // Create new service on the API
+            }
+
+            this.showModal = false;
+        },
+
+        // API call to create a new service
+        async createServiceInAPI(service) {
+            try {
+                const response = await fetch('/api/services', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(service),
+                });
+                if (!response.ok) {
+                    throw new Error('Failed to create service');
+                }
+            } catch (error) {
+                console.error('Error creating service:', error);
+                this.error = 'Failed to create service.';
+            }
+        },
+
+        // API call to update an existing service
+        async updateServiceInAPI(service) {
+            try {
+                const response = await fetch(`/api/services/${service.id}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(service),
+                });
+                if (!response.ok) {
+                    throw new Error('Failed to update service');
+                }
+            } catch (error) {
+                console.error('Error updating service:', error);
+                this.error = 'Failed to update service.';
+            }
+        },
+
+        deleteService(service) {
+            this.currentService = service;
+            this.showDeleteModal = true;
+        },
+
+        async confirmDeleteService() {
+            this.services = this.services.filter(s => s.id !== this.currentService.id);
+            await this.deleteServiceFromAPI(this.currentService.id); // Delete service from API
+            this.showDeleteModal = false;
+        },
+
+        // API call to delete a service
+        async deleteServiceFromAPI(serviceId) {
+            try {
+                const response = await fetch(`/api/services/${serviceId}`, {
+                    method: 'DELETE',
+                });
+                if (!response.ok) {
+                    throw new Error('Failed to delete service');
+                }
+            } catch (error) {
+                console.error('Error deleting service:', error);
+                this.error = 'Failed to delete service.';
+            }
+        },
+
+        toggleServiceStatus(service) {
+            const index = this.services.findIndex(s => s.id === service.id);
+            if (index !== -1) {
+                this.services[index].status = this.services[index].status === 'active' ? 'inactive' : 'active';
+            }
+        }
+    };
+}
